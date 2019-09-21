@@ -1,3 +1,4 @@
+include("simple_auxotroph.jl")
 using Plots
 
 mutable struct Experiment
@@ -14,26 +15,43 @@ function (e::Experiment)(sol)
 	append!(e.U, sol.u)
 end
 
-function build_experiment(step_size=5)
 
-	f, u0, tspan, p = build()
+function build_experiment(actions::Array{Function, 1}, step_size=0.1)
+
+	f, u0, p = build()
+
+	u::Array = copy(u0)
+
 	exp::Experiment = Experiment()
 	step::Float64 	= 0
+	tspan::Tuple    = (0., step_size)
 
-	function step!()
-		prob  = ODEProblem(f,u0, tspan, p)
+	function step!(action::Int)
 
+		actions[action](p)
+
+		prob  = ODEProblem(f,u, tspan, p)
 		sol = solve(prob)
 		exp(sol)
 
 		step += step_size
 
 		tspan = (step, step + step_size)
-		u0 	  = exp.U[end]
+		u 	  = exp.U[end]
+		u[u .< 0] .= 0
+		u[isapprox.(u, 0, atol=1e-2)] .= 0
 		exp
 	end
 
-	exp, step!
+	function reset!() 
+		u     = copy(u0)
+		exp   = Experiment()
+		step  = 0
+		tspan = (0., step_size)
+	end
+	get_state(exp::Experiment, populations = 2, unit = 10^6) =
+			div.(exp.U[end][1:populations], unit)
+
+	exp, step!, reset!
 end
 
-get_state(exp::Experiment, populations::Int32 = 2, unit::Int32 = 1e6) = div.(exp.U[end][1:populations], unit)
