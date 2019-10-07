@@ -16,7 +16,7 @@ function (e::Experiment)(sol)
 end
 
 
-function build_experiment(actions::Array{Function, 1}, step_size=0.1)
+function build_experiment(actions::Array{Function, 1}, step_size=1)
 
 	f, u0, p = build()
 
