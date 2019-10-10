@@ -15,8 +15,30 @@ function (e::Experiment)(sol)
 	append!(e.U, sol.u)
 end
 
+function get_state(states::Array; factor::Real=1e6, n::Integer=10)
 
-function build_experiment(actions::Array{Function, 1}, step_size=1)
+	if length(states) == 0
+		throw(ArgumentError("This Array must have at least 1 item"))
+	elseif n <= 0
+		throw(ArgumentError("This n must be bigger than 0 item"))
+	elseif length(filter(x -> x < 0, states)) != 0
+		throw(ArgumentError("This Array cannot have negative values"))
+	elseif abs(factor) ≈ 0
+		throw(ArgumentError("The factor must be different from 0"))
+	end
+
+	x = []
+	for state in states
+		aux = convert(Integer, round(state / factor))
+		if aux > n
+			aux = n
+		end
+		append!(x, aux)
+	end
+	Tuple(i for i in x)
+end
+
+function build_experiment(actions::Array{Function, 1}, step_size::Integer=1)
 
 	f, u0, p = build()
 
