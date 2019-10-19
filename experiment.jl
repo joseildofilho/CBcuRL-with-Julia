@@ -1,11 +1,11 @@
-include("simple_auxotroph.jl")
-using Plots
+using Plots, LSODA
 
 mutable struct Experiment
 	U
 	T
-	Experiment() = new([],[])
-	Experiment(x,y) = new(x,y)
+	n
+	Experiment() = new([],[], 0)
+	Experiment(x,y,z) = new(x,y,z)
 end
 
 @recipe f(exp::Experiment) = (vcat(exp.T...), transpose(hcat(exp.U...)))
@@ -14,8 +14,13 @@ function (e::Experiment)(sol)
 	append!(e.T, sol.t)
 	append!(e.U, sol.u)
 end
+function (e1::Experiment)(e2::Experiment)
+	e1.U = e2.U
+	e1.T = e2.T
+	e1.n = e2.n
+end
 
-function get_state(states::Array; factor::Real=1e6, n::Integer=10)
+function get_state(states::Array; factor::Real=10 ^ 4, n::Integer=10)
 
 	if length(states) == 0
 		throw(ArgumentError("This Array must have at least 1 item"))
@@ -29,7 +34,7 @@ function get_state(states::Array; factor::Real=1e6, n::Integer=10)
 
 	x = []
 	for state in states
-		aux = convert(Integer, round(state / factor))
+		aux = convert(Integer, ceil(state / factor))
 		if aux > n
 			aux = n
 		end
@@ -38,7 +43,7 @@ function get_state(states::Array; factor::Real=1e6, n::Integer=10)
 	Tuple(i for i in x)
 end
 
-function build_experiment(actions::Array{Function, 1}, step_size::Integer=1)
+function build_experiment(actions::Array{Function, 1}, reward::Function; step_size::Integer=3, episode_size::Integer=100)
 
 	f, u0, p = build()
 
@@ -48,32 +53,37 @@ function build_experiment(actions::Array{Function, 1}, step_size::Integer=1)
 	step::Float64 	= 0
 	tspan::Tuple    = (0., step_size)
 
-	function step!(action::Int)
+	steps::Int64 = 0
+
+	function step!(action::Integer)
 
 		actions[action](p)
 
 		prob  = ODEProblem(f,u, tspan, p)
-		sol = solve(prob)
+		sol = solve(prob,lsoda(), abstol=1e-12, reltol=1e-12)
 		exp(sol)
 
-		step += step_size
-
-		tspan = (step, step + step_size)
+		tspan = step_size .+ tspan
 		u 	  = exp.U[end]
-		u[u .< 0] .= 0
-		u[isapprox.(u, 0, atol=1e-2)] .= 0
-		exp
+		aux = get_state(u[1:2])
+
+		(aux |> reward, aux)
 	end
 
 	function reset!() 
+		@info "Reseting Env"
+		@show u
 		u     = copy(u0)
-		exp   = Experiment()
-		step  = 0
+		@show u
+		exp(Experiment())
 		tspan = (0., step_size)
+		u[1:2] |> get_state
 	end
-	get_state(exp::Experiment, populations = 2, unit = 10^6) =
-			div.(exp.U[end][1:populations], unit)
 
-	exp, step!, reset!
+	function is_end(state::Tuple)
+		return episode_size <= tspan[1] / step_size
+	end
+
+	exp, step!, reset!, is_end
 end
 
