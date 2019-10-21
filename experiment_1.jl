@@ -11,16 +11,17 @@ function main()
 
 	params = exp, step!, reset!, is_end! = build_experiment(actions(),
 															reward,
-															step_size=3)
+															step_size=3,
+															number_species=2)
 
 	size_q = 10
 	Q = Dict((i,j) => rand(2) for j in 1:size_q for i in 1:size_q)
 
-	q!(Q, params[2:end]...)
+	q!(Q, params[2:end]..., episodes=1)
 	
 	plot(
 		 plot(exp),
-		 plot(transpose(hcat(map(x->x[3:4], exp.U)...))),
+		 plot(transpose(hcat(exp.N...))),
 		 layout=(2,1),
 		size=(1700,1000)
 		 )

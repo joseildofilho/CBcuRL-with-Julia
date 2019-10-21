@@ -17,7 +17,7 @@ actions() = [
 			 p -> inject_value!(p)
 			 ]
 
-function reward(state)
+function reward(state::Tuple)
 	if (state[1] == 1 || state[2] == 1) || (state[1] > 9 || state[2] > 9)
 		-1
 	else

@@ -1,27 +1,33 @@
 using Plots, LSODA
 
 mutable struct Experiment
-	U
-	T
-	n
-	Experiment() = new([],[], 0)
+	N::Array
+	C::Array
+	T::Array
+	n::Integer
+	Experiment() = new([],[],[], 1)
 	Experiment(x,y,z) = new(x,y,z)
 end
 
-@recipe f(exp::Experiment) = (vcat(exp.T...), transpose(hcat(exp.U...)))
+@recipe f(exp::Experiment) = (vcat(exp.T...), transpose(hcat(exp.N...)))
 
 function (e::Experiment)(sol)
 	append!(e.T, sol.t)
-	append!(e.U, sol.u)
+	append!(e.N, map(sol.u) do a a[1:e.n] end)
+	append!(e.C, map(sol.u) do a a[e.n+1:end] end)
 end
+
+function get_u(exp::Experiment)
+	vcat(exp.N[end], exp.C[end])
+end
+
 function (e1::Experiment)(e2::Experiment)
-	e1.U = e2.U
 	e1.T = e2.T
-	e1.n = e2.n
+	e1.C = e2.C
+	e1.N = e2.N
 end
 
 function get_state(states::Array; factor::Real=10 ^ 4, n::Integer=10)
-
 	if length(states) == 0
 		throw(ArgumentError("This Array must have at least 1 item"))
 	elseif n <= 0
@@ -43,13 +49,16 @@ function get_state(states::Array; factor::Real=10 ^ 4, n::Integer=10)
 	Tuple(i for i in x)
 end
 
-function build_experiment(actions::Array{Function, 1}, reward::Function; step_size::Integer=3, episode_size::Integer=100)
+function build_experiment(actions::Array{Function, 1}, reward::Function; 
+						  step_size::Integer=3, episode_size::Integer=1_000,
+						  number_species::Integer=2)
 
 	f, u0, p = build()
 
 	u::Array = copy(u0)
 
 	exp::Experiment = Experiment()
+	exp.n = number_species
 	step::Float64 	= 0
 	tspan::Tuple    = (0., step_size)
 
@@ -64,20 +73,18 @@ function build_experiment(actions::Array{Function, 1}, reward::Function; step_si
 		exp(sol)
 
 		tspan = step_size .+ tspan
-		u 	  = exp.U[end]
-		aux = get_state(u[1:2])
+		u 	  = get_u(exp)
+		aux = u[1:exp.n] |> get_state
 
 		(aux |> reward, aux)
 	end
 
 	function reset!() 
 		@info "Reseting Env"
-		@show u
 		u     = copy(u0)
-		@show u
 		exp(Experiment())
 		tspan = (0., step_size)
-		u[1:2] |> get_state
+		u[1:exp.n] |> get_state
 	end
 
 	function is_end(state::Tuple)
