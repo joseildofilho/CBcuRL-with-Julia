@@ -87,7 +87,7 @@ function build_experiment(actions::Array{Function, 1}, reward::Function;
 		u[1:exp.n] |> get_state
 	end
 
-	function is_end(state::Tuple)
+	function is_end()
 		return episode_size <= tspan[1] / step_size
 	end
 
