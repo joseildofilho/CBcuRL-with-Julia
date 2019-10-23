@@ -1,49 +1,51 @@
-include("./grid_world.jl")
-include("./utils.jl")
-function main()
-	grid = simple_grid()
+include("utils.jl")
 
-	Q = Dict(state => ((grid.states[state] == STATE) ? randn(length(grid.actions)) : zeros(length(grid.actions)))
-			 for state in 1:grid.nS)
+function n_step_sarsa!(Q::Dict, 
+					  step!::Function,
+					  reset!::Function,
+					  is_end::Function;
+					  episodes=10_000)
 
 	e 	  = 0.9
 	alpha = 0.9
 	n 	  = 2
 	gamma = 0.9
 
+	state_history::History  = History()
+	action_history::History = History()
+	reward_history::History = History()
 
-	state_history  = History()
-	action_history = History()
-	reward_history = History()
+	reward_mean_history::Array{Real,1} = []
 
-	e_greedy = build_e_greedy(Q, grid.nA)
+	for episode in 1:episodes
+		println("\repisodes: $episode / $episodes")
 
-	policy = greedy(Q)
+		reward_mean::Integer  = 0
+		reward_count::Integer = 0
 
-	episodes = 1:100000
-
-	for episode in episodes
-		print("\repisodes: $episode / $episodes $(Q[6])\r")
 		reset.([state_history, action_history, reward_history])
-		S = reset!(grid)
+		S::Tuple = reset!()
 		state_history(S)
 
-		A = policy[S]
+		A::Integer = e_greedy(Q[S],e)
 		action_history(A)
 
-		T = Inf
-		t = 0
-		tau = 0
-		terminal = false
+		T::Real = Inf
+		t::Integer = 0
+		tau::Integer = 0
 		while !(tau == T - 1)
 			if t < T
-				S, R, terminal = step!(grid, A)
+				R::Real, S = step!(A)
+
+				reward_mean  += R
+				reward_count += 1
+
 				state_history(S)
 				reward_history(R)
-				if terminal
+				if is_end()
 					T = t + 1
 				else
-					A = policy[S]
+					A = e_greedy(Q[S],e)
 					action_history(A)
 				end
 			end
@@ -61,23 +63,16 @@ function main()
 				state_tau  = state_history()
 				action_tau = action_history()
 				Q[state_tau][action_tau] += alpha * (G - Q[state_tau][action_tau])
-				policy[state_tau] = e_greedy(state_tau, e)
 			end
 			t += 1
 		end
-		if episode < 500
+		if e > 0.1
 			alpha *= 0.99
-#			gamma *= 0.9999
 			e *= 0.99
 		end
+		@show reward_mean/reward_count
+		push!(reward_mean_history, reward_mean / reward_count)
 	end
-
-	policy = greedy(Q)
-	show(grid)
-
-	show_policy(policy)
-	for i in 1:15
-		@show Q[i], i, argmax(Q[i])
-	end
+	@show reward_mean_history
+	Dict("reward" => reward_mean_history)	
 end
-main()

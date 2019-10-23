@@ -1,3 +1,11 @@
+function e_greedy(actions, ε)
+	if rand() > ε
+		return actions |> argmax
+	else
+		return rand([1, length(actions)])
+	end
+end
+
 function build_e_greedy(Q_function, actions)
 	(state, e) -> rand() > e ? argmax(Q_function[state]) : rand(1: actions)
 end
@@ -12,12 +20,12 @@ end
 
 struct History
 	hist::Array{Any, 1}
-	History(n::Int32) = new([nothing for _ in 1:n])
+	History(n::Integer) = new([nothing for _ in 1:n])
 	History() = new([])
 end
 
 function (h::History)(item)
-	append!(h.hist, item)
+	push!(h.hist, item)
 #	popfirst!(h.hist)
 end
 
