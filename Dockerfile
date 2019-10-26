@@ -3,11 +3,8 @@ FROM julia
 RUN apt-get update && apt-get install -y build-essential
 
 RUN julia -e 'using Pkg; \
-		Pkg.add(["DifferentialEquations", \
-				"Plots", \
-				"ModelingToolkit", \
-				"LSODA", \
-				"Crayons" \
+		Pkg.add(["DifferentialEquations", "Plots", "ModelingToolkit", \
+				"LSODA", "Crayons", "JSON", "ArgParse"\
 		]); '
 
 COPY . /apt/source-code
