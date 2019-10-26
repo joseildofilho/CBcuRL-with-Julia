@@ -1,6 +1,7 @@
 include("grid_world.jl")
 
 using ModelingToolkit
+using Latexify
 
 function inject_0!(p)
 	p[end] = 0.0
@@ -25,39 +26,54 @@ function reward(state::Tuple)
 	end
 end
 
-function build()
-	@parameters t C0in CTin
-	@variables N1(t) N2(t) C0(t) CT(t)
+function build(args::Dict)
+	species::Integer = args["species"]
+	concentrations::Integer = args["concentrations"]
+
+	@parameters t Cin[1:concentrations]
+	@variables N[1:species](t) C[1:concentrations](t)
 	@derivatives D'~t
 
-	q = 0.5
+	q = args["q"]
 
-	γ1 = 480000.0
-	γT = 520000.0
+	γ0 = args["γ0"]
+	γ = args["γ"]
 
-	Ks1 = 0.00006845928
-	KT  = 0.00000102115
+	K = args["K"]
 
-	μmax1 = 1.5
-	μmax2 = 3.0
+	μmax = args["μmax"]
 
-	μ1 = μmax1 * (C0/(Ks1 + C0))
-	μ2 = μmax2 * (C0/(Ks1 + C0))*(CT/(KT + CT))
+	μ = [
+		 (μmax[i] * (*)([C[j] / (C[j] + K[i][j]) for j in 1:length(K) if K[i][j] != 0.0]...)) for i in 1:species
+		 ]
+
+	Ds = [
+		 D(N[i]) ~ N[i] * (μ[i] - q) for i in 1:species
+		  ]
+	Cs = [
+		 D(C[1]) ~ q*(Cin[1] - C[1]) - (+)([((μ[i] * N[i]) / (γ0[i])) 
+										   for i in 1:species]...)
+		  ]
+	c = 2
+	for (specie, γ_) in enumerate(γ)
+		if !(0.0 == γ_)
+			push!(Cs, D(C[c]) ~ q*(Cin[c] - C[c]) - (μ[specie] * N[specie]) / (γ_))
+			c += 1
+		end
+	end
 
 	eqs = [
-		   D(N1) ~ N1*(μ1 - q),
-		   D(N2) ~ N2*(μ2 - q),
-		   D(C0) ~ q*(C0in - C0) - (((1/γ1) * μ1 * N1) + ((1/γ1) * μ2 * N2)),
-		   D(CT) ~ q*(CTin - CT) - (1/γT) * μ2 * N2
+		   Ds...,
+		   Cs...
 		   ]
 
 	de = ODESystem(eqs)
 
-	f  = ODEFunction(de, [N1, N2, C0, CT], [C0in, CTin])
+	f  = ODEFunction(de, [N..., C...], [Cin...])
 
 	u0    = [100000., 1000., 0.0, 0.0]
 	p     = [0.25, 
 			 0.]
 
-	(f, u0, p)
+	(f, u0, p, de)
 end
