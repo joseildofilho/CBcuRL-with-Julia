@@ -1,7 +1,6 @@
 include("grid_world.jl")
 
 using ModelingToolkit
-using Latexify
 
 function inject_0!(p)
 	p[end] = 0.0
@@ -71,9 +70,5 @@ function build(args::Dict)
 
 	f  = ODEFunction(de, [N..., C...], [Cin...])
 
-	u0    = [100000., 1000., 0.0, 0.0]
-	p     = [0.25, 
-			 0.]
-
-	(f, u0, p, de)
+	Dict("f" => f, "de" => de)
 end

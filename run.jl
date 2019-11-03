@@ -25,12 +25,6 @@ end
 
 load_config(path::String) = path |> open |> JSON.parse
 
-function import_functions(methods::Array)
-	for method in methods
-		replace(method, "!" => "") |> include
-	end
-end
-
 function main()
 
 	parsed_arguments = parse_commandline()
@@ -40,42 +34,48 @@ function main()
 	gr()
 
 	env = build(params["envoriment"])
-	methods = map(collect(params["methods"])) do m
-		Symbol(m.first) => m.second |> dictstring2symbol
+
+	train_params = params["train"]
+	q_size= train_params["Q_size"]
+
+	learning_methods = map(collect(params["methods"])) do m
+			Symbol(m.first) => m.second |> dictstring2symbol
 		end
 
-
-	exper_params = build_experiment(actions(),
+	#aux = learning_methods .|> first
+	#for method in aux
+	#	replace(String(method), "!" => "") * ".jl" |> include
+	#end
+	
+	for method in learning_methods
+		exper_params = build_experiment(actions(),
 									reward,
-									step_size=3,
-									number_species=2,
-									env)
+									env,
+									[train_params["u0"]...],
+									[train_params["p"]...]
+									)
 
-	size_q = 10
-	Q = Dict((i,j) => rand(2) for j in 1:size_q for i in 1:size_q)
+		Q = Dict((i,j) => rand(2) for j in 1:q_size for i in 1:q_size)
 
+		@info method
+		f = getfield(Main, method.first)
+		step!, reset!, is_end = exper_params[2:end]
+		rewards = f(Q, step!, reset!, is_end; method.second...)
 
-	for method in methods
-		rewards = getfield(Main, method.first)(Q, exper_params[2:end]... 
-											   ;method.second...)
+		exp = exper_params[1]
+		plot(
+			 plot(exp),
+			 plot(transpose(hcat(exp.N...))),
+			 plot(rewards["reward"]),
+			 layout=(3,1),
+			 size=(5000,1000)
+		 )
+		png("$(method.first)_plots.png")
 	end
 
 	#rewards = n_step_sarsa!(Q, params[2:end]..., episodes=2)
-	exp = exper_params[1]
 	
-	plot(
-		 plot(exp),
-		 plot(transpose(hcat(exp.N...))),
-		 plot(rewards["reward"]),
-		 layout=(3,1),
-		size=(5000,1000)
-		 )
-	png("plots.png")
 	
-	Dict("rewards" => rewards, 
-		 "Q" => Q,
-		 "params" => exp_params,
-		 )
 end
 main()
 

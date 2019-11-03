@@ -49,12 +49,16 @@ function get_state(states::Array; factor::Real=10 ^ 4, n::Integer=10)
 	Tuple(i for i in x)
 end
 
-function build_experiment(actions::Array{Function, 1}, reward::Function,
-						  envoriment::Tuple;
-						  step_size::Integer=3, episode_size::Integer=1_000,
+function build_experiment(actions::Array{Function, 1}, 
+						  reward::Function,
+						  envoriment::Dict,
+						  u0::Array,
+						  p::Array;
+						  step_size::Integer=3,
+						  episode_size::Integer=1_000,
 						  number_species::Integer=2)
 
-	f, u0, p = envoriment
+	f = envoriment["f"]
 
 	u::Array = copy(u0)
 
