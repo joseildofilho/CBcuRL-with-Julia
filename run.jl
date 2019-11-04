@@ -1,6 +1,7 @@
 include("dictstring2symbol.jl")
 include("experiment.jl")
-include("simple_auxotroph.jl")
+include("system_equations.jl")
+include("single_auxotroph.jl")
 include("q.jl")
 include("n_step_sarsa.jl")
 
@@ -9,6 +10,7 @@ using Plots
 using ArgParse
 using JSON
 using InteractiveUtils
+using Base.Cartesian
 
 function parse_commandline()
 	s = ArgParseSettings()
@@ -36,7 +38,6 @@ function main()
 	env = build(params["envoriment"])
 
 	train_params = params["train"]
-	q_size= train_params["Q_size"]
 
 	learning_methods = map(collect(params["methods"])) do m
 			Symbol(m.first) => m.second |> dictstring2symbol
@@ -48,14 +49,22 @@ function main()
 	#end
 	
 	for method in learning_methods
-		exper_params = build_experiment(actions(),
+		actions_list = build_actions(train_params["Cin"])
+		@show actions_list
+		exper_params = build_experiment(actions_list,
 									reward,
 									env,
 									[train_params["u0"]...],
 									[train_params["p"]...]
 									)
 
-		Q = Dict((i,j) => rand(2) for j in 1:q_size for i in 1:q_size)
+		#Q = Dict((i,j) => rand(2) for j in 1:q_size for i in 1:q_size)
+		Q = zeros([train_params["Q_size"] 
+				   for i in 1:params["envoriment"]["species"]]...)
+		Q = Dict(i.I 
+				 =>
+				rand(length(actions_list))
+				 for i in CartesianIndices(Q))
 
 		@info method
 		f = getfield(Main, method.first)
