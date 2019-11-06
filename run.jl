@@ -50,7 +50,9 @@ function main()
 	
 	for method in learning_methods
 		actions_list = build_actions(train_params["Cin"])
-		@show actions_list
+		aux1::Array{Array, 1} = train_params["bounds"]
+		aux2::Array = train_params["rewards"]
+		reward = build_reward(aux1, aux2)
 		exper_params = build_experiment(actions_list,
 									reward,
 									env,
