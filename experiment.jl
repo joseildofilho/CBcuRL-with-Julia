@@ -27,12 +27,13 @@ function (e1::Experiment)(e2::Experiment)
 	e1.N = e2.N
 end
 
-function get_state(states::Array; factor::Real=10 ^ 4, n::Integer=10)
+function get_state(states::Array; factor::Real=1, n::Integer=10)
 	if length(states) == 0
 		throw(ArgumentError("This Array must have at least 1 item"))
 	elseif n <= 0
 		throw(ArgumentError("This n must be bigger than 0 item"))
 	elseif length(filter(x -> x < 0, states)) != 0
+		@show states
 		throw(ArgumentError("This Array cannot have negative values"))
 	elseif abs(factor) ≈ 0
 		throw(ArgumentError("The factor must be different from 0"))
@@ -74,12 +75,12 @@ function build_experiment(actions::Array{Function, 1},
 		actions[action](p)
 
 		prob  = ODEProblem(f,u, tspan, p)
-		sol = solve(prob,lsoda(), abstol=1e-12, reltol=1e-12)
+		sol = solve(prob,lsoda(), abstol=1e-13, reltol=1e-13)
 		exp(sol)
 
 		tspan = step_size .+ tspan
 		u 	  = get_u(exp)
-		aux = u[1:exp.n] |> get_state
+		aux = get_state(u[1:exp.n])
 
 		(aux |> reward, aux)
 	end
@@ -93,7 +94,12 @@ function build_experiment(actions::Array{Function, 1},
 	end
 
 	function is_end()
-		return episode_size <= tspan[1] / step_size
+		time = episode_size <= tspan[1] / step_size
+		alive = foldr((x,y) -> x&&y, (>).(0.1, u[1:exp.n]);init=true)
+		if alive
+			@show "kill bacterias"
+		end
+		return time || alive
 	end
 
 	exp, step!, reset!, is_end

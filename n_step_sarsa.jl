@@ -4,18 +4,27 @@ function n_step_sarsa!(Q::Dict,
 					  step!::Function,
 					  reset!::Function,
 					  is_end::Function;
-					  episodes=10_000)
+					  α::Real=1,
+			 		  ε::Real=1,
+					  γ::Real=0.5,
+					  episodes::Integer=10_000,
+					  αmin   ::Real=0.01,
+					  αfactor::Real=0.999,
+					  εmin   ::Real=0.001,
+					  εfactor::Real=0.999,
+					  γmin   ::Real=0.05,
+				      γfactor::Real=0.999)
 
-	e 	  = 0.9
-	alpha = 0.9
+
 	n 	  = 2
-	gamma = 0.9
 
 	state_history::History  = History()
 	action_history::History = History()
 	reward_history::History = History()
 
-	reward_mean_history::Array{Real,1} = []
+	reward_mean_history::Array{Real, 1} = []
+	lr_history 		   ::Array{Real, 1} = []
+	greedy_history 	   ::Array{Real, 1} = []
 
 	for episode in 1:episodes
 		println("\repisodes: $episode / $episodes")
@@ -27,7 +36,7 @@ function n_step_sarsa!(Q::Dict,
 		S::Tuple = reset!()
 		state_history(S)
 
-		A::Integer = e_greedy(Q[S],e)
+		A::Integer = e_greedy(Q[S],ε)
 		action_history(A)
 
 		T::Real = Inf
@@ -45,34 +54,42 @@ function n_step_sarsa!(Q::Dict,
 				if is_end()
 					T = t + 1
 				else
-					A = e_greedy(Q[S],e)
+					A = e_greedy(Q[S],ε)
 					action_history(A)
 				end
 			end
 			tau = t - n + 1
 			if tau >= 0
 				Rs 	   = reward_history.hist[1:end]
-				gammas = [gamma ^ (i - 1) for i in 1:length(Rs)]
-				G = sum((*).(Rs, gammas))
+				γs = [γ ^ (i - 1) for i in 1:length(Rs)]
+				G = sum((*).(Rs, γs))
 				reward_history()
 				if tau + n < T
 					state_aux  = state_history.hist[end]
 					action_aux = action_history.hist[end]
-					G = G + (gamma ^ n) * Q[state_aux][action_aux]
+					G = G + (γ ^ n) * Q[state_aux][action_aux]
 				end
 				state_tau  = state_history()
 				action_tau = action_history()
-				Q[state_tau][action_tau] += alpha * (G - Q[state_tau][action_tau])
+				Q[state_tau][action_tau] += α * (G - Q[state_tau][action_tau])
 			end
 			t += 1
 		end
-		if e > 0.1
-			alpha *= 0.99
-			e *= 0.99
+		if ε > εmin
+			ε *= εfactor
 		end
-		@show reward_mean/reward_count
+		if α > αmin
+			α *= αfactor
+		end
+		if γ > γmin
+			γ *= γfactor
+		end
+		@info reward_mean/reward_count ε α γ
+		push!(lr_history, α)
+		push!(greedy_history, ε)
 		push!(reward_mean_history, reward_mean / reward_count)
 	end
-	@show reward_mean_history
-	Dict("reward" => reward_mean_history)	
+	Dict("reward" => reward_mean_history,
+		 "lr" => lr_history,
+		 "e_greedy" => greedy_history)
 end
