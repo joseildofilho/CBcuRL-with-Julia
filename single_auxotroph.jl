@@ -2,10 +2,10 @@ function build_actions(inputs::Array)
 	actions::Array{Function, 1} = []
 	num_actions = 2 ^ length(inputs)
 	for action in 0:num_actions-1
+		aux = (*).(digits(action, base=2, pad=length(inputs)),inputs)
 		push!(actions,
 			function(p)
-				p[2:end] = (*).(digits(action, base=2, pad=length(inputs)),
-								inputs)
+				p[2:end] = aux
 				p
 			end
 			)
