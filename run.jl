@@ -31,7 +31,7 @@ function main()
 
 	parsed_arguments = parse_commandline()
 
-	params = load_config("./params/simple_auxotroph.json")
+	params = load_config(parsed_arguments["config"])
 
 	gr()
 
@@ -76,7 +76,7 @@ function main()
 		exp = exper_params[1]
 		plot(
 			 plot(exp),
-			 plot(transpose(hcat(exp.N...))),
+			 plot(transpose(hcat(exp.C...))),
 			 plot(rewards["reward"]),
 			 layout=(3,1),
 			 size=(5000,1000)
