@@ -57,7 +57,8 @@ function build_experiment(actions::Array{Function, 1},
 						  p::Array;
 						  step_size::Integer=3,
 						  episode_size::Integer=1_000,
-						  number_species::Integer=2)
+						  number_species::Integer=2,
+						  adjust_factor::Integer=1)
 
 	f = envoriment["f"]
 
@@ -80,13 +81,13 @@ function build_experiment(actions::Array{Function, 1},
 
 		tspan = step_size .+ tspan
 		u 	  = get_u(exp)
-		aux = get_state(u[1:exp.n])
+		aux = get_state(u[1:exp.n]; factor=adjust_factor)
 
 		(aux |> reward, aux)
 	end
 
 	function reset!() 
-		@info "Reseting Env"
+		#@info "Reseting Env"
 		u     = copy(u0)
 		exp(Experiment())
 		tspan = (0., step_size)
@@ -95,7 +96,7 @@ function build_experiment(actions::Array{Function, 1},
 
 	function is_end()
 		time = episode_size <= tspan[1] / step_size
-		alive = foldr((x,y) -> x&&y, (>).(0.1, u[1:exp.n]);init=true)
+		alive = foldr((x,y) -> x||y, (>).(0.1, u[1:exp.n]);init=false)
 		if alive
 			@show "kill bacterias"
 		end
