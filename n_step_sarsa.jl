@@ -8,17 +8,32 @@ function n_step_sarsa!(Q::Dict,
 			 		  ε::Real=1,
 					  γ::Real=0.5,
 					  episodes::Integer=10_000,
+					  αdecay ::Bool=true,
 					  αmin   ::Real=0.01,
 					  αfactor::Real=0.999,
+					  holdαbefore::Real=0.05,
+					  holdαafter ::Real=0.03,
+					  εdecay ::Bool=true,
 					  εmin   ::Real=0.001,
 					  εfactor::Real=0.999,
+					  holdεbefore::Real=0.05,
+					  holdεafter ::Real=0.03,
+					  γdecay ::Bool=false,
 					  γmin   ::Real=0.05,
 				      γfactor::Real=0.999,
+					  holdγbefore::Real=0.05,
+					  holdγafter ::Real=0.03,
 					  n 	 ::Integer=2)
 
-	αfactor = (αmin/α)^(1/(episodes-1000))
-	εfactor = (εmin/ε)^(1/(episodes-1000))
-	γfactor = (γmin/γ)^(1/(episodes-1000))
+	if αdecay
+		αfactor = (αmin/α)^(1/(episodes-episodes*holdαafter))
+	end
+	if εdecay
+		εfactor = (εmin/ε)^(1/(episodes-episodes*holdεafter))
+	end
+	if γdecay
+		γfactor = (γmin/γ)^(1/(episodes-episodes*holdγafter))
+	end
 
 	state_history::History  = History()
 	action_history::History = History()
@@ -77,13 +92,22 @@ function n_step_sarsa!(Q::Dict,
 			end
 			t += 1
 		end
-		if ε > εmin
+		if ε > εmin &&
+			episode > (episodes * holdεbefore) &&
+			episode < (episodes * (1 - holdεafter)) &&
+			εdecay
 			ε *= εfactor
 		end
-		if α > αmin
+		if α > αmin &&
+			episode > (episodes * holdαbefore) &&
+			episode < (episodes * (1 - holdαafter)) &&
+			αdecay
 			α *= αfactor
 		end
-		if γ > γmin
+		if γ > γmin &&
+			episode > (episodes * holdγbefore) &&
+			episode < (episodes * (1 - holdγafter)) &&
+			γdecay
 			γ *= γfactor
 		end
 #		@info reward_mean/reward_count ε α γ

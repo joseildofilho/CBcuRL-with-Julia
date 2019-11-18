@@ -8,16 +8,31 @@ function q!(Q::Dict,
 			ε::Real=1,
 			γ::Real=0.5,
 			episodes::Integer=10_000,
+			αdecay ::Bool=true,
 			αmin   ::Real=0.01,
 			αfactor::Real=0.999,
+			holdαbefore::Real=0.05,
+			holdαafter ::Real=0.03,
+			εdecay ::Bool=true,
 			εmin   ::Real=0.001,
 			εfactor::Real=0.999,
+			holdεbefore::Real=0.05,
+			holdεafter ::Real=0.03,
+			γdecay ::Bool=false,
 			γmin   ::Real=0.05,
-			γfactor::Real=0.999)
+			γfactor::Real=0.999,
+			holdγbefore::Real=0.05,
+			holdγafter ::Real=0.03)
 	
-	αfactor = (αmin/α)^(1/(episodes-1000))
-	εfactor = (εmin/ε)^(1/(episodes-1000))
-	γfactor = (γmin/γ)^(1/(episodes-1000))
+	if αdecay
+		αfactor = (αmin/α)^(1/(episodes-episodes*holdαafter))
+	end
+	if εdecay
+		εfactor = (εmin/ε)^(1/(episodes-episodes*holdεafter))
+	end
+	if γdecay
+		γfactor = (γmin/γ)^(1/(episodes-episodes*holdγafter))
+	end
 
 	reward_list::Array{Real,1} = []
 	lr_list    ::Array{Real,1} = []
@@ -34,13 +49,22 @@ function q!(Q::Dict,
 			reward_m += R
 			reward_c += 1
 		end
-		if ε > εmin
+		if ε > εmin &&
+			epi > (episodes * holdεbefore) &&
+			epi < (episodes * (1 - holdεafter)) &&
+			εdecay
 			ε *= εfactor
 		end
-		if α > αmin
+		if α > αmin &&
+			epi > (episodes * holdαbefore) &&
+			epi < (episodes * (1 - holdαafter)) &&
+			αdecay
 			α *= αfactor
 		end
-		if γ > γmin
+		if γ > γmin &&
+			epi > (episodes * holdγbefore) &&
+			epi < (episodes * (1 - holdγafter)) &&
+			γdecay
 			γ *= γfactor
 		end
 		reward_result = reward_m / reward_c
