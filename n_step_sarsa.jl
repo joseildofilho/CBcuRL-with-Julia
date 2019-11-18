@@ -13,10 +13,12 @@ function n_step_sarsa!(Q::Dict,
 					  εmin   ::Real=0.001,
 					  εfactor::Real=0.999,
 					  γmin   ::Real=0.05,
-				      γfactor::Real=0.999)
+				      γfactor::Real=0.999,
+					  n 	 ::Integer=2)
 
-
-	n 	  = 2
+	αfactor = (αmin/α)^(1/(episodes-1000))
+	εfactor = (εmin/ε)^(1/(episodes-1000))
+	γfactor = (γmin/γ)^(1/(episodes-1000))
 
 	state_history::History  = History()
 	action_history::History = History()
@@ -27,10 +29,10 @@ function n_step_sarsa!(Q::Dict,
 	greedy_history 	   ::Array{Real, 1} = []
 
 	for episode in 1:episodes
-		println("\repisodes: $episode / $episodes")
 
 		reward_mean::Integer  = 0
 		reward_count::Integer = 0
+		reward_result = 0.0
 
 		reset.([state_history, action_history, reward_history])
 		S::Tuple = reset!()
@@ -84,10 +86,14 @@ function n_step_sarsa!(Q::Dict,
 		if γ > γmin
 			γ *= γfactor
 		end
-		@info reward_mean/reward_count ε α γ
+#		@info reward_mean/reward_count ε α γ
+
+		reward_result = reward_mean/reward_count
 		push!(lr_history, α)
 		push!(greedy_history, ε)
 		push!(reward_mean_history, reward_mean / reward_count)
+
+		print("\repisodes: $episode / $episodes $reward_result α=$(round(α, sigdigits=3))  ε=$(round(ε, sigdigits=3)) γ=$(round(γ, sigdigits=3))")
 	end
 	Dict("reward" => reward_mean_history,
 		 "lr" => lr_history,
