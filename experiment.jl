@@ -98,7 +98,7 @@ function build_experiment(actions::Array{Function, 1},
 		time = episode_size <= tspan[1] / step_size
 		alive = foldr((x,y) -> x||y, (>).(0.1, u[1:exp.n]);init=false)
 		if alive
-			@show "kill bacterias"
+			print("\rkill bacterias")
 		end
 		return time || alive
 	end

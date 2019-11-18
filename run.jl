@@ -11,6 +11,7 @@ using ArgParse
 using JSON
 using InteractiveUtils
 using Base.Cartesian
+using Dates
 
 function parse_commandline()
 	s = ArgParseSettings()
@@ -21,17 +22,16 @@ function parse_commandline()
 			arg_type = String
 			required = true
 	end
-
 	parse_args(s)
 end
 
 load_config(path::String) = path |> open |> JSON.parse
 
-function main()
+function main(;path::String = "")
 
 	parsed_arguments = parse_commandline()
 
-	params = load_config(parsed_arguments["config"])
+	params = (path == "" ? parsed_arguments["config"] : path) |> load_config
 
 	gr()
 
@@ -43,6 +43,8 @@ function main()
 			Symbol(m.first) => m.second |> dictstring2symbol
 		end
 
+	experiment_time = Dates.format(now(), "HH_MM_d_u_y")
+
 	#aux = learning_methods .|> first
 	#for method in aux
 	#	replace(String(method), "!" => "") * ".jl" |> include
@@ -53,35 +55,49 @@ function main()
 		aux1::Array{Array, 1} = train_params["bounds"]
 		aux2::Array = train_params["rewards"]
 		reward = build_reward(aux1, aux2)
-		exper_params = build_experiment(actions_list,
+
+		experiments::Array{Experiment, 1} = []
+		rewards::Array{Array{Real, 1},1}  = []
+
+		for i in 1:10
+			exper_params = build_experiment(actions_list,
 									reward,
 									env,
 									[train_params["u0"]...],
-									[train_params["p"]...]
+									[train_params["p"]...];
+									number_species=params["envoriment"]["species"],
+									adjust_factor=train_params["adjust_factor"]
 									)
 
-		#Q = Dict((i,j) => rand(2) for j in 1:q_size for i in 1:q_size)
-		Q = zeros([train_params["Q_size"] 
+			Q = zeros([train_params["Q_size"] 
 				   for i in 1:params["envoriment"]["species"]]...)
-		Q = Dict(i.I 
+			Q = Dict(i.I 
 				 =>
 				rand(length(actions_list))
 				 for i in CartesianIndices(Q))
 
-		@info method
-		f = getfield(Main, method.first)
-		step!, reset!, is_end = exper_params[2:end]
-		rewards = f(Q, step!, reset!, is_end; method.second...)
+			@info method
+			f = getfield(Main, method.first)
+			step!, reset!, is_end = exper_params[2:end]
+			method_return = f(Q, step!, reset!, is_end; method.second...)
 
-		exp = exper_params[1]
-		plot(
-			 plot(exp),
-			 plot(transpose(hcat(exp.C...))),
-			 plot(rewards["reward"]),
-			 layout=(3,1),
-			 size=(5000,1000)
-		 )
-		png("$(method.first)_plots.png")
+			exp = exper_params[1]
+			push!(experiments, exp)
+			push!(rewards, method_return["reward"])
+			
+		end
+		med = (foldr(rewards) do list, acc
+				   if length(list) == 0
+					   list
+				   else
+					   acc + list
+				   end
+			   end)
+		plot(med, size=(5000,1000))
+		mkpath(String(method.first))
+		png("$(method.first)/$(experiment_time).png")
+
+		#return (exp=experiments, rewards=rewards)
 	end
 
 	#rewards = n_step_sarsa!(Q, params[2:end]..., episodes=2)
