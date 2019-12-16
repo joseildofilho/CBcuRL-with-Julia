@@ -6,7 +6,7 @@ function q!(Q::Dict,
 			is_end::Function;
 			α::Real=1,
 			ε::Real=1,
-			γ::Real=0.5,
+			γ::Real=0.9,
 			episodes::Integer=10_000,
 			αdecay ::Bool=true,
 			αmin   ::Real=0.01,
@@ -37,10 +37,14 @@ function q!(Q::Dict,
 	reward_list::Array{Real,1} = []
 	lr_list    ::Array{Real,1} = []
 	greedy_list::Array{Real,1} = []
+	episodes_size::Array{Integer, 1} = []
+
+
 	for epi in 1:episodes
 		state = reset!()
 		reward_m = 0
 		reward_c = 1
+		t = 0
 		while !is_end()
 			action = e_greedy(Q[state], ε)
 			R, S_ = step!(action)
@@ -48,6 +52,7 @@ function q!(Q::Dict,
 			state = S_
 			reward_m += R
 			reward_c += 1
+			t += 1
 		end
 		if ε > εmin &&
 			epi > (episodes * holdεbefore) &&
@@ -72,12 +77,14 @@ function q!(Q::Dict,
 		push!(reward_list, reward_result)
 		push!(lr_list, α)
 		push!(greedy_list, ε)
+		push!(episodes_size, t)
 
 		print("\repisode $epi / $episodes $(round(reward_result, sigdigits=3)) α=$(round(α, sigdigits=3))  ε=$(round(ε, sigdigits=3)) γ=$(round(γ, sigdigits=3))")
 	end
 	Dict("reward" => reward_list,
 		 "lr" => lr_list,
-		 "e_greedy" => greedy_list)
+		 "e_greedy" => greedy_list,
+		 "duration" => episodes_size)
 
 end
 
