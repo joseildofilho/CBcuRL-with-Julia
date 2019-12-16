@@ -4,6 +4,7 @@ include("system_equations.jl")
 include("single_auxotroph.jl")
 include("q.jl")
 include("n_step_sarsa.jl")
+include("random_method.jl")
 
 using DifferentialEquations
 using Plots
