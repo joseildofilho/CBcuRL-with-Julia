@@ -58,6 +58,8 @@ function main(;path::String = "")
 
 		experiments::Array{Experiment, 1} = []
 		rewards::Array{Array{Real, 1},1}  = []
+		durations::Array{Array{Integer, 1}, 1} = []
+		e = 0
 
 		for i in 1:10
 			exper_params = build_experiment(actions_list,
@@ -66,15 +68,13 @@ function main(;path::String = "")
 									[train_params["u0"]...],
 									[train_params["p"]...];
 									number_species=params["envoriment"]["species"],
-									adjust_factor=train_params["adjust_factor"]
+									upper_bound=train_params["upper_bound"]
 									)
 
-			Q = zeros([train_params["Q_size"] 
-				   for i in 1:params["envoriment"]["species"]]...)
-			Q = Dict(i.I 
-				 =>
-				rand(length(actions_list))
-				 for i in CartesianIndices(Q))
+			Q = Dict(i.I =>	rand(length(actions_list))
+				for i in CartesianIndices(Tuple(
+						  [train_params["Q_size"] 
+						   for _ in 1:params["envoriment"]["species"]])))
 
 			@info method
 			f = getfield(Main, method.first)
@@ -84,16 +84,32 @@ function main(;path::String = "")
 			exp = exper_params[1]
 			push!(experiments, exp)
 			push!(rewards, method_return["reward"])
+			push!(durations, method_return["duration"])
+			e = method_return["e_greedy"]
 			
 		end
-		med = (foldr(rewards) do list, acc
+		med_rewards = (foldr(rewards) do list, acc
 				   if length(list) == 0
 					   list
 				   else
 					   acc + list
 				   end
 			   end)
-		plot(med, size=(5000,1000))
+
+		mean_duration = foldr(durations) do list, acc
+					if length(list) == 0
+						list
+					else
+						acc + list
+					end
+				end |> plot
+
+		@show med_rewards[1]
+		plot(plot(med_rewards),
+			 mean_duration,
+			 plot(e),
+			 plot(experiments[end]),
+			 layout=(4,1), size=(5000,3000))
 		mkpath(String(method.first))
 		png("$(method.first)/$(experiment_time).png")
 
