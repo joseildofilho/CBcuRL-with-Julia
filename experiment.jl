@@ -27,23 +27,20 @@ function (e1::Experiment)(e2::Experiment)
 	e1.N = e2.N
 end
 
-function get_state(states::Array; factor::Real=1, n::Integer=10)
+function get_state(states::Array; upper_bound::Real=10^6, folds::Integer=10)
 	if length(states) == 0
 		throw(ArgumentError("This Array must have at least 1 item"))
-	elseif n <= 0
-		throw(ArgumentError("This n must be bigger than 0 item"))
 	elseif length(filter(x -> x < 0, states)) != 0
-		@show states
 		throw(ArgumentError("This Array cannot have negative values"))
-	elseif abs(factor) ≈ 0
-		throw(ArgumentError("The factor must be different from 0"))
 	end
 
 	x = []
 	for state in states
-		aux = convert(Integer, ceil(state / factor))
-		if aux > n
-			aux = n
+		aux = state / upper_bound
+		if aux > 1
+			aux = folds
+		else
+			aux = convert(Integer, ceil(aux * folds))
 		end
 		append!(x, aux)
 	end
@@ -58,7 +55,8 @@ function build_experiment(actions::Array{Function, 1},
 						  step_size::Integer=3,
 						  episode_size::Integer=1_000,
 						  number_species::Integer=2,
-						  adjust_factor::Integer=1)
+						  upper_bound::Integer=10^6,
+						  folds::Integer=10)
 
 	f = envoriment["f"]
 
@@ -81,13 +79,12 @@ function build_experiment(actions::Array{Function, 1},
 
 		tspan = step_size .+ tspan
 		u 	  = get_u(exp)
-		aux = get_state(u[1:exp.n]; factor=adjust_factor)
+		aux = get_state(u[1:exp.n]; upper_bound=upper_bound, folds=folds)
 
 		(aux |> reward, aux)
 	end
 
 	function reset!() 
-		#@info "Reseting Env"
 		u     = copy(u0)
 		exp(Experiment())
 		tspan = (0., step_size)
