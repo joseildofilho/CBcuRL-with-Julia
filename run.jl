@@ -5,6 +5,7 @@ include("single_auxotroph.jl")
 include("q.jl")
 include("n_step_sarsa.jl")
 include("random_method.jl")
+include("n_step_off_policy_sarsa.jl")
 
 using DifferentialEquations
 using Plots
@@ -51,6 +52,7 @@ function main(;path::String = "")
 	#	replace(String(method), "!" => "") * ".jl" |> include
 	#end
 	
+	@info learning_methods
 	for method in learning_methods
 		actions_list = build_actions(train_params["Cin"])
 		aux1::Array{Array, 1} = train_params["bounds"]

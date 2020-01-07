@@ -58,9 +58,10 @@ function n_step_sarsa!(Q::Dict,
 		action_history(A)
 
 		T::Real = Inf
-		t::Integer = 0
+		t::Integer = -1
 		tau::Integer = 0
 		while !(tau == T - 1)
+			t += 1
 			if t < T
 				R::Real, S = step!(A)
 
@@ -91,7 +92,6 @@ function n_step_sarsa!(Q::Dict,
 				action_tau = action_history()
 				Q[state_tau][action_tau] += α * (G - Q[state_tau][action_tau])
 			end
-			t += 1
 		end
 		if ε > εmin &&
 			episode > (episodes * holdεbefore) &&
