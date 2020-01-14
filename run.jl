@@ -23,6 +23,10 @@ function parse_commandline()
 			help = "The file used to configure the project"
 			arg_type = String
 			required = true
+		"results_path"
+			help = "Set folder where the files goes"
+			arg_type = String
+			default = "results"
 	end
 	parse_args(s)
 end
@@ -105,18 +109,27 @@ function main(;path::String = "")
 					else
 						acc + list
 					end
-				end |> plot
+				end
 
 		@show med_rewards[1]
-		plot(plot(med_rewards),
-			 mean_duration,
-			 plot(e),
-			 plot(experiments[end]),
-			 layout=(4,1), size=(5000,3000))
-		mkpath(String(method.first))
-		png("$(method.first)/$(experiment_time).png")
 
-		#return (exp=experiments, rewards=rewards)
+		path = "$(parsed_arguments["results_path"])/$(experiment_time)"
+		mkpath(path)
+		
+		args = Dict(:size=>(900,900), :linewidth=>3)
+		plot(med_rewards, ylim=(0,15), xlim=(0,150); args...)
+		png("$path/$(method.first)_mean_rewards.png")
+
+		plot(mean_duration, ylim=(0,15), xlim=(0,150); args...)
+		png("$path/$(method.first)_mean_duration.png")
+
+		plot(e, ylim=(0,1), xlim=(0,150); args...)
+		png("$path/$(method.first)_epsilon.png")
+
+		plot(experiments[end], ylim=(0,15), xlim=(0,150); args...)
+		png("$path/$(method.first)_some_time.png")
+
+		return (exp=experiments, rewards=rewards, e=e)
 	end
 
 	#rewards = n_step_sarsa!(Q, params[2:end]..., episodes=2)
