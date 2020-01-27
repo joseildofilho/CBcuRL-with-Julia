@@ -46,7 +46,11 @@ function main(;path::String = "")
 	train_params = params["train"]
 
 	learning_methods = map(collect(params["methods"])) do m
-			Symbol(m.first) => m.second |> dictstring2symbol
+			method_name = m.first			
+			if method_name[end] != '!'
+				method_name = method_name[1:end-1]
+			end
+			Symbol(method_name) => m.second |> dictstring2symbol
 		end
 
 	experiment_time = Dates.format(now(), "HH_MM_d_u_y")
@@ -114,6 +118,11 @@ function main(;path::String = "")
 		@show med_rewards[1]
 
 		path = "$(parsed_arguments["results_path"])/$(experiment_time)"
+
+		for arg in method.second
+			path *= "_$(arg.first)_$(arg.second)_"
+		end
+
 		mkpath(path)
 		
 		args = Dict(:size=>(900,900), :linewidth=>3)
@@ -129,7 +138,7 @@ function main(;path::String = "")
 		plot(experiments[end], ylim=(0,15), xlim=(0,150); args...)
 		png("$path/$(method.first)_some_time.png")
 
-		return (exp=experiments, rewards=rewards, e=e)
+		#return (exp=experiments, rewards=rewards, e=e)
 	end
 
 	#rewards = n_step_sarsa!(Q, params[2:end]..., episodes=2)
