@@ -13,19 +13,29 @@
 				[-0.1, -0.1]]
 	},
 	"methods" : {
-		"q!" : {
-			"episodes" : 10000
+		"q!": {
+			"episodes": 10000
 		},
-		"n_step_sarsa!" : {
+		"n_step_sarsa!": {
+			"episodes" : 10000,
+			"n":2
+		},
+		"n_step_sarsa!@": {
+			"episodes" : 10000,
+			"n":3
+		},
+		"random_method!": {
 			"episodes" : 10000
 		}
 	},
 	"train" : {
-		"Q_size" : 15,
-		"u0" : [10.0, 10.0, 0.0, 0.0, 0.0],
+		"Q_size" : 10,
+		"u0" : [2.0, 2.0, 0.0, 0.0, 0.0],
 		"p" : [1.0, 0.0, 0.0],
 		"Cin" : [0.1,0.1],
 		"bounds" : [[2,2],[10,10]],
-		"rewards" : [1,0]
+		"rewards" : [1,0],
+		"upper_bound" : 20,
+		"folds" : 10
 	}
 }
