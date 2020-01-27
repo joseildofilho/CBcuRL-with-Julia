@@ -1,5 +1,5 @@
 include("q.jl")
-function random_method(Q::Dict,
+function random_method!(Q::Dict,
 		 step!::Function,
 		 reset!::Function,
 		 is_end::Function;
