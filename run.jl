@@ -1,3 +1,5 @@
+ENV["GKSwstype"] = "100"
+
 include("dictstring2symbol.jl")
 include("experiment.jl")
 include("system_equations.jl")
@@ -126,16 +128,16 @@ function main(;path::String = "")
 		mkpath(path)
 		
 		args = Dict(:size=>(900,900), :linewidth=>3)
-		plot(med_rewards, ylim=(0,15), xlim=(0,150); args...)
+		plot(med_rewards, ylim=(0,15); args...)
 		png("$path/$(method.first)_mean_rewards.png")
 
-		plot(mean_duration, ylim=(0,15), xlim=(0,150); args...)
+		plot(mean_duration; args...)
 		png("$path/$(method.first)_mean_duration.png")
 
-		plot(e, ylim=(0,1), xlim=(0,150); args...)
+		plot(e, ylim=(0,1); args...)
 		png("$path/$(method.first)_epsilon.png")
 
-		plot(experiments[end], ylim=(0,15), xlim=(0,150); args...)
+		plot(experiments[end], ylim=(0,15); args...)
 		png("$path/$(method.first)_some_time.png")
 
 		#return (exp=experiments, rewards=rewards, e=e)
